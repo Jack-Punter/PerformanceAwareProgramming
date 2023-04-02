@@ -98,6 +98,8 @@ String StringConcat(Arena * a, String s1, String s2) {
 }
 
 //- Application 
+u8 Memory[65536];
+
 int main(int argc, char *argv[])
 {
     // This is for 8 byte registers
@@ -162,21 +164,37 @@ int main(int argc, char *argv[])
     
     fprintf(output, "bits 16\n\n");
     u8 *cursor = asm_buffer;
-    while (cursor != asm_buffer + read_size) {
+    while (cursor != asm_buffer + read_size)
+    {
         // Check if the top 6 bits of the byte are 0b100010xx = 0x88. this indicates a 
         b32 is_mov = ((*cursor & 0xFC) ^ 0x88) == 0;
         b32 D = *cursor & 0x2;
         b32 W = *cursor & 0x1;
-        if (is_mov) {
+        String *register_name_table = W ? W1RegisterNames : W0RegisterNames;
+        if (is_mov)
+        {
             cursor++;
             u8 r_m = *cursor & 0x7;
             u8 reg = (*cursor >> 0x3) & 0x7;
             u8 mod = (*cursor >> 0x6) & 0x3;
-            Assert(mod == 3, "Should always be 0b11 for this listing");
-            String *RegisterTable = W ? W1RegisterNames : W0RegisterNames;
-            String Source = D ? RegisterTable[r_m] : RegisterTable[reg];
-            String Dest = D ? RegisterTable[reg] : RegisterTable[r_m];
-            fprintf(output, "mov\t%.*s,\t%.*s\n", StringExpand(Dest), StringExpand(Source));
+            Assert(mod == 0x3, "Should always be 0b11 for this listing");
+            // If D is set, the reg field is the destination
+            String Source = D ? register_name_table[r_m] : register_name_table[reg];
+            String Dest = D ? register_name_table[reg] : register_name_table[r_m];
+            switch(mod) {
+                case 0x0: {
+                } break;
+                
+                case 0x1: {
+                } break;
+                
+                case 0x2: {
+                } break;
+                
+                case 0x3: { // Register to Register Mov
+                    fprintf(output, "mov\t%.*s,\t%.*s\n", StringExpand(Dest), StringExpand(Source));
+                } break;
+            }
         }
         
         cursor++;
